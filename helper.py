@@ -14,7 +14,7 @@ G_POSTS = 1000
 
 def connect():
     """
-    Returns a connection to reddit using account credentials 
+    Returns a connection to reddit using account credentials stored in ./creds/redditCreds.json
     """
     with open("creds/redditCreds.json") as f:
         secrets = json.load(f)
@@ -25,7 +25,8 @@ def connect():
 
 def topPosters(subreddit,connection):
    '''
-   returns a list of top posters from a given subreddit based on the most recent 1000 posts
+   Takes a subreddit name as a string and praw reddit connectino object
+   Returns the 100 top posters based on the most recent 1000 posts in the subreddit
    '''
    reddit = connection
    watch_subreddit = reddit.subreddit(subreddit)
@@ -50,6 +51,10 @@ def topPosters(subreddit,connection):
    return redditors
 
 def redditorAnalysis(user,connection):
+   '''
+   Takes a string, user, that is the username and a reddit connection object
+   returns all posts the user has made in  r/Watchexchange marked as 'wts' 
+   '''
    reddit = connection
    redditor = reddit.redditor(user)
    all_submissions = []
@@ -61,8 +66,10 @@ def redditorAnalysis(user,connection):
    return all_submissions
 
 def sellPrice(priceStr):
-   # needs some regular expression magic here
-   # find a more effecient way of doing the below
+   '''
+   takes a string as input and returns the price of the item if the expression can be matched,
+   returns None if no expression can be matched
+   '''
    num = regex.search(r'[$]\s*[0-9]+[,]*[0-9]*',priceStr)
    num2 = regex.search(r'[0-9]+[,]*[0-9]*[$]',priceStr)
    first = True
@@ -79,6 +86,10 @@ def sellPrice(priceStr):
    return int(output)
 
 def price(post):
+   '''
+   Takes a praw post object as input and searches the comments for price of the watch 
+   If it can find a rpice it will return the integervalue, if it is unable to find a price it will return none
+   '''
    comments = post.comments
    for top_level_comment in comments:
       if top_level_comment.is_submitter:
@@ -90,9 +101,8 @@ def price(post):
 
 def saleCheck(post):
    """
-   Return true/false based on whether the watch has been sold or not 
-
-   Need to add in more thorough checks if an item is sold, 
+   Takes a praw post object as input and returns a boolean value based on whether there is evidence of the 
+   watch being sold
    """
    if post.link_flair_text == 'Sold':
       return True
@@ -102,7 +112,7 @@ def saleCheck(post):
 
 def saveData(data,filename):
     '''
-    Saves a copy of listings and their price as a list in a file
+    Takes a data, a list of posts or pandas data frame, and saves it in the given filename and path provided
     '''
     with open('data/'+filename, 'wb') as f:
         pickle.dump(data,f)
@@ -110,7 +120,7 @@ def saveData(data,filename):
 
 def retrieveData(filename):
     '''
-    Input is the filename where the listings were saved, must be a string
+    Input is the filename including path to subsection of data and returns the data object 
     '''
     with open('data/'+filename, 'rb') as f:
         mylist = pickle.load(f)
@@ -118,8 +128,8 @@ def retrieveData(filename):
 
 def postTime(post):
     '''
-    initially will just return the year that a post was created in, then will expand this to get 
-    more granular information
+    Takes a praw post object and returns the time that it was posted as three object 
+    year as an int, month as an int, and day plus time as a string(will change this later)
     '''
     # when the post was created
     time = post
@@ -128,6 +138,10 @@ def postTime(post):
     return int(split_time[0]),int(split_time[1]), split_time[2]
 
 def ngramsWrapper(input, n):
+   '''
+   Wrapper around built in nltk ngrams function
+   Takes a string as input and n is the n-grams number, will return all ngrams from 1 to n as a list of list of strings
+   '''
    input = input.lower()
    unwantedStrings = ['[wts]','[wts/wtt]','[wts]/[wtt]','[wtt]','[meta]','[wtb]','and','automatic','with','dial','vintage','full','-','&','blue','strap','black','watch','new','kit',',']
    for i in unwantedStrings:
