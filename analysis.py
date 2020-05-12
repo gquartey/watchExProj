@@ -3,6 +3,8 @@ import helper as h
 import numpy as np
 from matplotlib import pyplot as plt
 
+G_POSTS = 1000
+
 def trendingBrands(connection):  
    # create a reddit object
    reddit = connection
