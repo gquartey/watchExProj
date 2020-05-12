@@ -53,7 +53,7 @@ def main():
    pbar = ProgressBar()
    for redditor in pbar(redditors):
       listing_posts = listing_posts + h.redditorAnalysis(redditor,connection)
-
+   # use listing_posts and comment everythign else out if you just want the posts
    pbar = ProgressBar()
    for post in pbar(listing_posts):
       list_price = h.price(post)
@@ -70,6 +70,11 @@ def main():
       sale_time = h.postTime(post_tup[0].created_utc)
       if earliest_sale > sale_time:
          earliest_sale = sale_time
+   '''
+   Here is where you can start working with data.
+   the list called post_w_price contains tuples, each index has the post object in the first index and the 
+   price the post listed at in the second index. 
+   '''
    print("Posts with prices and sold flair : ",sold)
    print("Total money across all listings : ", sum_of_traded_money)
    print("Earliest recording listing in dataset : ", earliest_sale)
