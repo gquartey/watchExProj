@@ -80,11 +80,10 @@ def createDataSet(posts,filename):
    h.saveData(pdData,filename)
 
 def main():
-   # connection = h.connect()
-
-   # listing_posts = h.retrieveListings('sample')
-   # saleStats(connection,listing_posts)
-   posts = h.retrieveData('rawPosts/sample')
-   createDataSet(posts,'analysis/sample')
+   '''
+   This will print out the sample pandas dataframe
+   '''
+   data_frame = h.retrieveListings('analysis/sample')
+   print(data_frame)
 
 main()
