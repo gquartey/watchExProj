@@ -4,6 +4,7 @@ from collections import OrderedDict
 import praw 
 import pandas as pd
 import helper as h 
+import matplotlib.pyplot as plt
 
 """
 thoughts
@@ -72,10 +73,10 @@ def createDataSet(posts,filename):
       year,month,_ = h.postTime(post.created_utc)
       list_price = h.price(post)
       upvotes = post.score
-      upovte_ratio = post.upvote_ratio
+      upvote_ratio = post.upvote_ratio
       sold = h.saleCheck(post)
-      data.append([author,title,comments,year,month,upvotes,upovte_ratio,sold,list_price])
-   pdData = pd.DataFrame(data,columns = ['author','title','comments','year','month','upvotes','upovte_ratio','sold','list_price'])
+      data.append([author,title,comments,year,month,upvotes,upvote_ratio,sold,list_price])
+   pdData = pd.DataFrame(data,columns = ['author','title','comments','year','month','upvotes','upvote_ratio','sold','list_price'])
    print(pdData)
    h.saveData(pdData,filename)
 
@@ -83,7 +84,10 @@ def main():
    '''
    This will print out the sample pandas dataframe
    '''
-   data_frame = h.retrieveData('analysis/sample')
-   print(data_frame)
+   # posts = h.retrieveData('rawPosts/sample')
+   # createDataSet(posts,'analysis/sample')
+   df = h.retrieveData('analysis/sample')
+   print(df['sold'].describe())
+  
 
 main()
