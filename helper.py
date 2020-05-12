@@ -24,7 +24,9 @@ def connect():
 
 
 def topPosters(subreddit,connection):
-   # connect to reddit 
+   '''
+   returns a list of top posters from a given subreddit based on the most recent 1000 posts
+   '''
    reddit = connection
    watch_subreddit = reddit.subreddit(subreddit)
    hot_posts = watch_subreddit.new(limit=1000)
@@ -60,21 +62,30 @@ def redditorAnalysis(user,connection):
 
 def sellPrice(priceStr):
    # needs some regular expression magic here
+   # find a more effecient way of doing the below
    num = regex.search(r'[$]\s*[0-9]+[,]*[0-9]*',priceStr)
+   num2 = regex.search(r'[0-9]+[,]*[0-9]*[$]',priceStr)
+   first = True
    try:
       output = str(num.group(0)).replace('$','')
    except AttributeError:
-      return None
+      first = False
+   if not first:
+      try:
+         output = str(num2.group(0)).replace('$','')
+      except AttributeError:
+         return None
    output = output.replace(',','')
    return int(output)
 
 def price(post):
    comments = post.comments
    for top_level_comment in comments:
-      if '$' in top_level_comment.body:
-         price = sellPrice(top_level_comment.body)
-         if price != None:
-            return price
+      if top_level_comment.is_submitter:
+         if '$' in top_level_comment.body:
+            price = sellPrice(top_level_comment.body)
+            if price != None:
+               return price
    return None
 
 def saleCheck(post):
@@ -89,19 +100,19 @@ def saleCheck(post):
       return False
    return False
 
-def saveListings(listings):
+def saveData(data,filename):
     '''
     Saves a copy of listings and their price as a list in a file
     '''
-    with open('data/listings', 'wb') as f:
-        pickle.dump(listings,f)
+    with open('data/'+filename, 'wb') as f:
+        pickle.dump(data,f)
 
 
-def retrieveListings(listings):
+def retrieveData(filename):
     '''
     Input is the filename where the listings were saved, must be a string
     '''
-    with open('data/'+listings, 'rb') as f:
+    with open('data/'+filename, 'rb') as f:
         mylist = pickle.load(f)
     return mylist
 
@@ -113,5 +124,22 @@ def postTime(post):
     # when the post was created
     time = post
     time_str = datetime.datetime.fromtimestamp(int(time)).strftime('%Y-%m-%d %H:%M:%S')
-    return int(time_str[0:4])
+    split_time = time_str.split('-')
+    return int(split_time[0]),int(split_time[1]), split_time[2]
+
+def ngramsWrapper(input, n):
+   input = input.lower()
+   unwantedStrings = ['[wts]','[wts/wtt]','[wts]/[wtt]','[wtt]','[meta]','[wtb]','and','automatic','with','dial','vintage','full','-','&','blue','strap','black','watch','new','kit',',']
+   for i in unwantedStrings:
+      input = input.replace(i,'')
+   input = input.split(' ')
+   if '' in input:
+      input.remove('')
+   if ' ' in input: 
+      input.remove(' ')
+   output = []
+   for i in range(1,n+1):
+      for k in ngrams(input,i):
+         output.append(list(k))
+   return output
 

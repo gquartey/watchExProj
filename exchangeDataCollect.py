@@ -1,85 +1,90 @@
-import praw
-import json
-import regex 
-import pandas as pd
-import numpy as np 
 from scipy import stats
-from nltk import ngrams
 from progressbar import ProgressBar
 from collections import OrderedDict
-
-# import helper function 
+import praw 
+import pandas as pd
 import helper as h 
 
-G_POSTS = 1000
-
-def ngramsWrapper(input, n):
-   input = input.lower()
-   unwantedStrings = ['[wts]','[wts/wtt]','[wts]/[wtt]','[wtt]','[meta]','[wtb]','and','automatic','with','dial','vintage','full','-','&','blue','strap','black','watch','new','kit',',']
-   for i in unwantedStrings:
-      input = input.replace(i,'')
-   input = input.split(' ')
-   if '' in input:
-      input.remove('')
-   if ' ' in input: 
-      input.remove(' ')
-   output = []
-   for i in range(1,n+1):
-      for k in ngrams(input,i):
-         output.append(list(k))
-   return output
-
-
-
 """
-Thoughts 
-do ngrams per top user, see what the top 20 posters are primarily selling because we can only get about 1000 posts from the subreddit at once but there 
-is not limit when it comes to the total number of posts by individual users. Filter all posts from an individual user by wts, then work off those titles
-can cross check top sellers from new posts by total amount of posts  tagged as wts in the subreddit 
-
+thoughts
 multi listings sepearted by commas in the title only comprise around 7% of the posts returned 
-
 need to re-write price finding function, lose about 20% of posts because it can't find the post in the listing
 """
-def main():
-   connection = h.connect()
-   
-
+def getPosts(connection):
+   '''
+   Collects all of the posts by first looking at the top posters from the 
+   newest 1000 posts and then finding all of the posts they've made in the subreddit
+   '''
    redditors = h.topPosters('Watchexchange',connection)
-   listing_posts = []
-   post_price_list = []
-   post_w_price = []
-
    pbar = ProgressBar()
+   listing_posts = []
    for redditor in pbar(redditors):
       listing_posts = listing_posts + h.redditorAnalysis(redditor,connection)
-   # use listing_posts and comment everythign else out if you just want the posts
+   return listing_posts
+
+def getListingPrice(connection,posts):
+   post_w_price = []
    pbar = ProgressBar()
    for post in pbar(listing_posts):
       list_price = h.price(post)
       if list_price != None:
          post_w_price.append((post,list_price))
+   return post_w_price
+
+def saleStats(connection,posts):
+   '''
+   post_w_price is a list of tuples, index 0 is the post, index 1 is the post 
+   '''
    sold = 0
    sum_of_traded_money = 0
+   earliest_listing = 1000000
    pbar = ProgressBar()
-   earliest_sale = 100000000
-   for post_tup in pbar(post_w_price):
-      if h.saleCheck(post_tup[0]):
-         sold += 1
-         sum_of_traded_money += post_tup[1]
-      sale_time = h.postTime(post_tup[0].created_utc)
-      if earliest_sale > sale_time:
-         earliest_sale = sale_time
-   '''
-   Here is where you can start working with data.
-   the list called post_w_price contains tuples, each index has the post object in the first index and the 
-   price the post listed at in the second index. 
-   '''
+   for post in pbar(posts):
+      list_price = h.price(post)
+      if list_price != None:
+         if h.saleCheck(post):
+            sold += 1
+            sum_of_traded_money += list_price
+      listing_time,_,_ = h.postTime(post.created_utc)
+      if earliest_listing > listing_time:
+         earliest_listing = listing_time
    print("Posts with prices and sold flair : ",sold)
    print("Total money across all listings : ", sum_of_traded_money)
-   print("Earliest recording listing in dataset : ", earliest_sale)
-   print("Posts with prices : ", len(post_w_price))
-   print("Total amount of posts : ",len(listing_posts))
-   # here we are at a point where we can start to do some formatting our data
-   # we can use the flair to initially check if the item has been sold 
+   print("Earliest recording listing in dataset : ", earliest_listing)
+
+def collectData():
+   connection = h.connect()
+   redditors  = h.topPosters('Watchexchange',connection)
+   listing_posts = getPosts(conenction)
+   h.saveData(listing_posts,'/rawPosts/full')
+   print("finished updating full dataset")
+
+def createDataSet(posts,filename):
+   '''
+   Saves a numpy array for future data analysis
+   '''
+   data = []
+   pbar = ProgressBar()
+   for post in pbar(posts):
+      author = post.author
+      title = post.title
+      comments = len(post.comments)
+      year,month,_ = h.postTime(post.created_utc)
+      list_price = h.price(post)
+      upvotes = post.score
+      upovte_ratio = post.upvote_ratio
+      sold = h.saleCheck(post)
+      data.append([author,title,comments,year,month,upvotes,upovte_ratio,sold,list_price])
+   pdData = pd.DataFrame(data,columns = ['author','title','comments','year','month','upvotes','upovte_ratio','sold','list_price'])
+   print(pdData)
+   h.saveData(pdData,filename)
+
+def main():
+   # connection = h.connect()
+
+   # listing_posts = h.retrieveListings('sample')
+   # saleStats(connection,listing_posts)
+   posts = h.retrieveData('rawPosts/sample')
+   createDataSet(posts,'analysis/sample')
+
 main()
