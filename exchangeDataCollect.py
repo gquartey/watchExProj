@@ -83,7 +83,7 @@ def main():
    '''
    This will print out the sample pandas dataframe
    '''
-   data_frame = h.retrieveListings('analysis/sample')
+   data_frame = h.retrieveData('analysis/sample')
    print(data_frame)
 
 main()
