@@ -1,10 +1,11 @@
 from scipy import stats
-from progressbar import ProgressBar
 from collections import OrderedDict
 import praw 
 import pandas as pd
 import helper as h 
 import matplotlib.pyplot as plt
+from tqdm import trange, tqdm
+import time 
 
 """
 thoughts
@@ -17,16 +18,14 @@ def getPosts(connection):
    newest 1000 posts and then finding all of the posts they've made in the subreddit
    '''
    redditors = h.topPosters('Watchexchange',connection)
-   pbar = ProgressBar()
    listing_posts = []
-   for redditor in pbar(redditors):
+   for redditor in tqdm(redditors):
       listing_posts = listing_posts + h.redditorAnalysis(redditor,connection)
    return listing_posts
 
 def getListingPrice(connection,posts):
    post_w_price = []
-   pbar = ProgressBar()
-   for post in pbar(listing_posts):
+   for post in tqdm(listing_posts):
       list_price = h.price(post)
       if list_price != None:
          post_w_price.append((post,list_price))
@@ -39,8 +38,7 @@ def saleStats(connection,posts):
    sold = 0
    sum_of_traded_money = 0
    earliest_listing = 1000000
-   pbar = ProgressBar()
-   for post in pbar(posts):
+   for post in tqdm(posts):
       list_price = h.price(post)
       if list_price != None:
          if h.saleCheck(post):
@@ -65,8 +63,7 @@ def createDataSet(posts,filename):
    Saves a numpy array for future data analysis
    '''
    data = []
-   pbar = ProgressBar()
-   for post in pbar(posts):
+   for post in tqdm(posts):
       author = post.author
       title = post.title
       comments = len(post.comments)
@@ -84,10 +81,9 @@ def main():
    '''
    This will print out the sample pandas dataframe
    '''
-   # posts = h.retrieveData('rawPosts/sample')
-   # createDataSet(posts,'analysis/sample')
+
    df = h.retrieveData('analysis/sample')
-   print(df['sold'].describe())
+   print(df)
   
 
 main()

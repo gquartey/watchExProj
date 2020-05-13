@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np 
 from scipy import stats
 from nltk import ngrams
-from progressbar import ProgressBar
+from tqdm import trange, tqdm
 from collections import OrderedDict
 import _pickle as pickle
 import datetime
@@ -33,7 +33,7 @@ def topPosters(subreddit,connection):
    hot_posts = watch_subreddit.new(limit=1000)
    authors = {}
    acc = 0 
-   for post in hot_posts:
+   for post in tqdm(hot_posts):
       acc += 1
       if('post for' not in post.title.lower()):
          if post.author in list(authors.keys()):
@@ -41,10 +41,11 @@ def topPosters(subreddit,connection):
          else:
             authors[post.author] = 1
    
-   d_descending = OrderedDict(sorted(authors.items(), key=lambda kv: kv[1], reverse=True))
-
-   sorted_items = sorted(d_descending.items(), key=lambda kv: kv[1], reverse=True)
-   things = list(authors.keys())
+   # test before deleting 
+   # d_descending = OrderedDict(sorted(authors.items(), key=lambda kv: kv[1], reverse=True))
+   # sorted_items = sorted(d_descending.items(), key=lambda kv: kv[1], reverse=True)
+   
+   sorted_items = sorted(authors.items(), key=lambda kv: kv[1], reverse=True)
    redditors = []
    for i in range(100):
       redditors.append(sorted_items[i][0].name)
@@ -55,11 +56,10 @@ def redditorAnalysis(user,connection):
    Takes a string, user, that is the username and a reddit connection object
    returns all posts the user has made in  r/Watchexchange marked as 'wts' 
    '''
-   reddit = connection
-   redditor = reddit.redditor(user)
+   redditor = connection.redditor(user)
    all_submissions = []
    submissions = redditor.submissions.new(limit=None)
-   for submission in submissions:
+   for submission in tqdm(submissions):
       if submission.subreddit.display_name == 'Watchexchange' and 'wts' in submission.title.lower():
          if 'repost' not in submission.title.lower() and ',' not in submission.title and 'bundle' not in submission.title.lower():
             all_submissions.append(submission)
@@ -91,7 +91,7 @@ def price(post):
    If it can find a rpice it will return the integervalue, if it is unable to find a price it will return none
    '''
    comments = post.comments
-   for top_level_comment in comments:
+   for top_level_comment in tqdm(comments):
       if top_level_comment.is_submitter:
          if '$' in top_level_comment.body:
             price = sellPrice(top_level_comment.body)

@@ -2,6 +2,7 @@ import praw
 import helper as h
 import numpy as np
 from matplotlib import pyplot as plt
+from tqdm import trange, tqdm
 
 G_POSTS = 1000
 
@@ -13,7 +14,7 @@ def trendingBrands(connection):
    watch_subreddit = reddit.subreddit('WatchExchange')
    hot_posts = watch_subreddit.hot(limit=G_POSTS)
    master_ngram = {}
-   for post in hot_posts:
+   for post in tqdm(hot_posts):
       if('Post for' not in post.title):
          n_grams = h.ngramsWrapper(post.title,3)
          for i in n_grams:
@@ -38,7 +39,7 @@ def priceStats():
    hot_posts = watch_subreddit.hot(limit=G_POSTS)
    list_prices = []
    print("started collecting data and prices")
-   for post in hot_posts:
+   for post in tqdm(hot_posts):
       if('wts' in post.title.lower()):
          comments = post.comments
          for top_level_comment in comments:
