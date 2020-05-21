@@ -2,18 +2,25 @@ import praw
 import helper as h
 import numpy as np
 from matplotlib import pyplot as plt
+from tqdm import trange, tqdm
+from collections import OrderedDict
+
 
 G_POSTS = 1000
-
+sub = 'Watchexchange'
 def trendingBrands(connection):  
    # create a reddit object
    reddit = connection
 
    # example of getting posts from a subreddit
-   watch_subreddit = reddit.subreddit('WatchExchange')
-   hot_posts = watch_subreddit.hot(limit=G_POSTS)
+   # watch_subreddit = reddit.subreddit(sub)
+   # hot_posts = watch_subreddit.hot(limit=G_POSTS)
+   redditors = h.topPosters(sub,connection)
+   posts = []
+   for redditor in tqdm(redditors):
+      posts = posts + h.redditorAnalysis(redditor,reddit)
    master_ngram = {}
-   for post in hot_posts:
+   for post in tqdm(posts):
       if('Post for' not in post.title):
          n_grams = h.ngramsWrapper(post.title,3)
          for i in n_grams:
@@ -26,10 +33,10 @@ def trendingBrands(connection):
 
    d_descending = OrderedDict(sorted(master_ngram.items(), key=lambda kv: kv[1], reverse=True))
     
-   print(sorted_items)
    things = list(d_descending.keys())
-   for i in range(10):
+   for i in range(50):
       print(things[i])
+
 def priceStats():
    # have to look into how to iterate through comments to get the prices that the watches are listed for
    # going through comments to find the listed prices of watches on the subreddit 
@@ -38,7 +45,7 @@ def priceStats():
    hot_posts = watch_subreddit.hot(limit=G_POSTS)
    list_prices = []
    print("started collecting data and prices")
-   for post in hot_posts:
+   for post in tqdm(hot_posts):
       if('wts' in post.title.lower()):
          comments = post.comments
          for top_level_comment in comments:
@@ -62,3 +69,6 @@ def priceStats():
    plt.ylabel("Price")
    plt.plot(x,sorted_arr)
    plt.show()
+
+con = h.connect()
+trendingBrands(con)
