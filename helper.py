@@ -9,8 +9,7 @@ from tqdm import trange, tqdm
 from collections import OrderedDict
 import _pickle as pickle
 import datetime
-
-G_POSTS = 1000
+from csv import reader 
 
 def connect():
     """
@@ -32,9 +31,7 @@ def topPosters(subreddit,connection):
    watch_subreddit = reddit.subreddit(subreddit)
    hot_posts = watch_subreddit.new(limit=1000)
    authors = {}
-   acc = 0 
    for post in tqdm(hot_posts):
-      acc += 1
       if('post for' not in post.title.lower()):
          if post.author in list(authors.keys()):
             authors[post.author] = authors[post.author] + 1
@@ -47,8 +44,12 @@ def topPosters(subreddit,connection):
    
    sorted_items = sorted(authors.items(), key=lambda kv: kv[1], reverse=True)
    redditors = []
-   for i in range(100):
-      redditors.append(sorted_items[i][0].name)
+   for i in range(150):
+      try:
+         redditors.append(sorted_items[i][0].name)
+      except NoneType:
+         print("username is none for some reason")
+
    return redditors
 
 def redditorAnalysis(user,connection):
@@ -137,23 +138,71 @@ def postTime(post):
     split_time = time_str.split('-')
     return int(split_time[0]),int(split_time[1]), split_time[2]
 
-def ngramsWrapper(input, n):
+def extractBrandName(title):
    '''
-   Wrapper around built in nltk ngrams function
-   Takes a string as input and n is the n-grams number, will return all ngrams from 1 to n as a list of list of strings
+   input:
+      title - string 
+   output:
+      string 
+   idea 1: 
+      hard code brands and do string matching on titles 
+   idea 2: 
+      do some kind of NER(named entity recognition)
    '''
-   input = input.lower()
-   unwantedStrings = ['[wts]','[wts/wtt]','[wts]/[wtt]','[wtt]','[meta]','[wtb]','and','automatic','with','dial','vintage','full','-','&','blue','strap','black','watch','new','kit',',']
-   for i in unwantedStrings:
-      input = input.replace(i,'')
-   input = input.split(' ')
-   if '' in input:
-      input.remove('')
-   if ' ' in input: 
-      input.remove(' ')
-   output = []
-   for i in range(1,n+1):
-      for k in ngrams(input,i):
-         output.append(list(k))
-   return output
+   with open('data/brands/shortList.csv','r') as f:
+      csv_reader = reader(f)
+      for row in csv_reader:
+         if row[0] in title.lower():
+            return row[0]
+   return 'other'
 
+def getPosts(connection):
+   '''
+   Collects all of the posts by first looking at the top posters from the 
+   newest 1000 posts and then finding all of the posts they've made in the subreddit
+   '''
+   redditors = topPosters('Watchexchange',connection)
+   listing_posts = []
+   for redditor in tqdm(redditors):
+      listing_posts = listing_posts + redditorAnalysis(redditor,connection)
+   return listing_posts
+
+def collectData(time_stamp):
+   connection = connect()
+   redditors  = topPosters('Watchexchange',connection)
+   listing_posts = getPosts(connection)
+   saveData(listing_posts,'/rawPosts/' + time_stamp)
+   saveData(listing_posts,'/rawPosts/latest')
+
+def createDataSet(posts,filename):
+   '''
+   Saves a numpy array for future data analysis
+   '''
+   data = []
+   for post in tqdm(posts):
+      author = post.author
+      title = post.title
+      comments = len(post.comments)
+      year,month,_ = postTime(post.created_utc)
+      list_price = price(post)
+      upvotes = post.score
+      upvote_ratio = post.upvote_ratio
+      sold = saleCheck(post)
+      p_row = [author,title,comments,year,month,upvotes,upvote_ratio,sold,list_price]
+      with open('data/brands/shortList.csv','r') as f:
+         csv_reader = reader(f)
+         brand = extractBrandName(post.title)
+         for row in csv_reader:
+            # if row[0] in title.lower():
+            if row[0] == brand:
+               p_row.append(1)
+            else:
+               p_row.append(0)
+         if brand == 'other':
+            p_row.append(1)
+         else:
+            p_row.append(0)
+      data.append(p_row)
+   pdData = pd.DataFrame(data,columns = ['author','title','comments','year','month','upvotes','upvote_ratio','sold','list_price','seiko','tudor','rolex','hamilton','omega','other'])
+   saveData(pdData,filename)
+   saveData(pdData,'latest')
