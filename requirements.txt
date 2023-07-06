@@ -1,7 +1,7 @@
 pandas==1.0.1
 praw==7.0.0
 regex==2020.5.7
-scipy==1.2.1
+scipy==1.10.0
 numpy==1.16.3
 nltk==3.5
 matplotlib==3.0.2
